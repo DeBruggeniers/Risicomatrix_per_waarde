@@ -48,22 +48,13 @@
     if(!data || !data.config) throw new Error('Geen configuratie ontvangen');
     window.PUBLISHED_RISK_CONFIG=data.config;
   }
-  function loadFallback(){
-    return new Promise((resolve,reject)=>{
-      const s=document.createElement('script');
-      s.src='https://raw.githubusercontent.com/DeBruggeniers/Risicomatrix_per_waarde/main/config.js?t='+Date.now();
-      s.onload=resolve;
-      s.onerror=reject;
-      document.body.appendChild(s);
-    });
-  }
   try{
-    try{await loadFromWorker()}catch(e){await loadFallback()}
+    await loadFromWorker()
     const appScript=document.createElement('script');
     appScript.src='app.js?v=20261013-1';
     document.body.appendChild(appScript);
   }catch(e){
-    document.body.innerHTML='<p style="padding:20px">De risicomatrix kon niet worden geladen. Vernieuw de pagina over enkele seconden.</p>';
+    document.body.innerHTML='<main style="max-width:740px;margin:40px auto;padding:24px;font-family:Arial,sans-serif"><h1>Nog geen risicomatrix gepubliceerd</h1><p>De nieuwe Cloudflare Worker heeft nog geen gepubliceerde configuratie, of de verbinding is tijdelijk niet beschikbaar.</p><p>Open <a href="bouwen.html">Risicomatrix beheren</a>, controleer de matrix en klik op <strong>Risicomatrix publiceren</strong> met het wachtwoord van de nieuwe Worker.</p><p>Daarna kun je deze pagina opnieuw openen.</p></main>';
   }
 })();
 </script>
