@@ -84,7 +84,10 @@ const EFFECT_PRESETS={
     'Catastrofaal\nExtreme en/of onomkeerbare gevolgen'
   ]
 };
-const STORAGE_KEY='risicomatrix-builder-v2';
+const STORAGE_KEY='risicomatrix-per-waarde-v1';
+let activeRiskValue='';
+function matrixFor(value){return config.riskMatrices[value]||(config.riskMatrices[value]=config.riskMatrix.map(row=>row.slice()));}
+
 const STEP_TITLES=['Waarden','Effectklassen','Effectbeschrijvingen','Kansklassen','Kansbeschrijvingen','Risicohouding'];
 const $=id=>document.getElementById(id);
 let currentStep=1;
@@ -196,6 +199,8 @@ function ensureConfigShape(){
  config.values.forEach(v=>{if(!config.effectDescriptions[v])config.effectDescriptions[v]=[];config.effectDescriptions[v]=Array.from({length:config.effectCount},(_,i)=>config.effectDescriptions[v][i]||'')});
  config.chanceDescriptions=Array.from({length:config.chanceCount},(_,i)=>config.chanceDescriptions?.[i]||'');
  if(!Array.isArray(config.riskMatrix)||config.riskMatrix.length!==config.effectCount||config.riskMatrix.some(r=>!Array.isArray(r)||r.length!==config.chanceCount))makeDefaultMatrix();
+ config.riskMatrices=config.riskMatrices||{};
+ config.values.forEach(v=>{const old=config.riskMatrices[v];if(!Array.isArray(old)||old.length!==config.effectCount||old.some(row=>!Array.isArray(row)||row.length!==config.chanceCount))config.riskMatrices[v]=Array.from({length:config.effectCount},(_,e)=>Array.from({length:config.chanceCount},(_,c)=>old?.[e]?.[c]||config.riskMatrix[e][c]));});
 }
 function applyEffectPreset(){
   const preset=EFFECT_PRESETS[config.effectCount]||[];
@@ -231,7 +236,7 @@ function renderStep1(){
  $('step1').innerHTML=`<h2>Stap 1. Organisatiewaarden bepalen</h2><p class="hint">Kies hoeveel waarden je wilt opnemen en geef iedere waarde een naam.</p><div class="field small"><label>Aantal waarden</label><select id="valueCount">${Array.from({length:10},(_,i)=>`<option value="${i+1}" ${config.valueCount===i+1?'selected':''}>${i+1}</option>`).join('')}</select></div><div class="value-list" id="valueInputs"></div>${navButtons()}`;
  const draw=()=>{$('valueInputs').innerHTML=Array.from({length:config.valueCount},(_,i)=>`<div class="input-card"><strong>Waarde ${i+1}</strong><div class="field"><label>Naam</label><input class="value-name" value="${esc(config.values[i]||'')}" placeholder="Bijvoorbeeld Veiligheid"></div></div>`).join('')};
  $('valueCount').addEventListener('change',e=>{config.valueCount=Number(e.target.value);config.values=Array.from({length:config.valueCount},(_,i)=>config.values[i]||'');draw()});draw();
- bindNav(()=>{const names=[...document.querySelectorAll('.value-name')].map(x=>x.value.trim());if(names.some(x=>!x)){alert('Vul voor iedere waarde een naam in.');return false}if(new Set(names.map(x=>x.toLowerCase())).size!==names.length){alert('Gebruik iedere waarde maar één keer.');return false}const old=config.effectDescriptions||{};config.values=names;config.effectDescriptions={};names.forEach(v=>config.effectDescriptions[v]=old[v]||Array(config.effectCount).fill(''));ensureConfigShape();return true});
+ bindNav(()=>{const names=[...document.querySelectorAll('.value-name')].map(x=>x.value.trim());if(names.some(x=>!x)){alert('Vul voor iedere waarde een naam in.');return false}if(new Set(names.map(x=>x.toLowerCase())).size!==names.length){alert('Gebruik iedere waarde maar één keer.');return false}const old=config.effectDescriptions||{};const oldNames=config.values.slice();const oldMatrices=config.riskMatrices||{};config.values=names;config.effectDescriptions={};config.riskMatrices={};names.forEach((v,i)=>{config.effectDescriptions[v]=old[v]||old[oldNames[i]]||Array(config.effectCount).fill('');config.riskMatrices[v]=(oldMatrices[v]||oldMatrices[oldNames[i]]||config.riskMatrix).map(row=>row.slice());});ensureConfigShape();return true});
 }
 function renderStep2(){
  $('step2').innerHTML=`<h2>Stap 2. Aantal effectklassen</h2><p class="hint">Kies 3 t/m 7 effectklassen. In stap 3 worden automatisch passende standaardbeschrijvingen ingevuld. Je kunt deze daarna per organisatiewaarde aanpassen.</p><div class="field small"><label>Aantal effectklassen</label><select id="effectCount">${[3,4,5,6,7].map(n=>`<option value="${n}" ${config.effectCount===n?'selected':''}>${n}</option>`).join('')}</select></div><div class="notice" id="effectCountNotice">Bij ${config.effectCount} klassen gebruik je: ${Array.from({length:config.effectCount},(_,i)=>effectLabel(i)).join(', ')}.</div>${navButtons()}`;
@@ -269,22 +274,25 @@ function renderStep5(){
 }
 function renderStep6(){
  ensureConfigShape();
+ activeRiskValue=config.values.includes(activeRiskValue)?activeRiskValue:config.values[0];
  const effectRows=Array.from({length:config.effectCount},(_,row)=>config.effectCount-1-row).map(e=>{
-   const descriptions=config.values.map(v=>{
+   const descriptions=[activeRiskValue].map(v=>{
      const text=config.effectDescriptions[v]?.[e]||'Geen beschrijving ingevuld.';
      return `<div class="effect-reference-item"><strong>${esc(v)}</strong><span>${esc(text).replace(/\\n/g,'<br>')}</span></div>`;
    }).join('');
-   return `<tr class="risk-row"><th class="effect-head"><div class="effect-head-wrap"><span>${effectLabel(e)}</span><button type="button" class="effect-info-btn" data-e="${e}" aria-expanded="false">Toelichting</button></div></th>${Array.from({length:config.chanceCount},(_,c)=>`<td><select class="risk-select" data-e="${e}" data-c="${c}">${RISK_LEVELS.map(r=>`<option value="${r.id}" ${config.riskMatrix[e][c]===r.id?'selected':''}>${r.name}</option>`).join('')}</select></td>`).join('')}</tr><tr class="effect-reference-row hidden" data-e="${e}"><td colspan="${config.chanceCount+1}"><div class="effect-reference-grid">${descriptions}</div></td></tr>`;
+   return `<tr class="risk-row"><th class="effect-head"><div class="effect-head-wrap"><span>${effectLabel(e)}</span><button type="button" class="effect-info-btn" data-e="${e}" aria-expanded="false">Toelichting</button></div></th>${Array.from({length:config.chanceCount},(_,c)=>`<td><select class="risk-select" data-e="${e}" data-c="${c}">${RISK_LEVELS.map(r=>`<option value="${r.id}" ${matrixFor(activeRiskValue)[e][c]===r.id?'selected':''}>${r.name}</option>`).join('')}</select></td>`).join('')}</tr><tr class="effect-reference-row hidden" data-e="${e}"><td colspan="${config.chanceCount+1}"><div class="effect-reference-grid">${descriptions}</div></td></tr>`;
  }).join('');
 
- $('step6').innerHTML=`<h2>Stap 6. Risicohouding bepalen</h2><p class="hint">Geef per combinatie van effect en kans de risicoklasse aan. Gebruik de toelichting per effectklasse om de beschrijvingen voor alle organisatiewaarden erbij te houden.</p><div class="step6-tools"><button type="button" class="secondary" id="toggleAllEffectInfo">Alle effectbeschrijvingen tonen</button></div><div class="matrix-scroll"><table class="matrix"><thead><tr><th class="effect-head">Effect / Kans</th>${Array.from({length:config.chanceCount},(_,c)=>`<th>${c+1}<br><span style="font-weight:400">${esc(config.chanceDescriptions[c]||'')}</span></th>`).join('')}</tr></thead><tbody>${effectRows}</tbody></table></div><div class="legend">${RISK_LEVELS.map(r=>`<span class="${r.css}">${r.name}</span>`).join('')}</div>${navButtons('Risicomatrix maken')}`;
+ $('step6').innerHTML=`<h2>Stap 6. Risicohouding bepalen</h2><p class="hint">Geef per combinatie van effect en kans de risicoklasse aan. Gebruik de toelichting per effectklasse om de beschrijvingen voor alle organisatiewaarden erbij te houden.</p><div class="field small"><label>Organisatiewaarde</label><select id="riskValueSelect">${config.values.map(v=>`<option value="${esc(v)}" ${v===activeRiskValue?'selected':''}>${esc(v)}</option>`).join('')}</select></div><div class="step6-tools"><button type="button" class="secondary" id="copyRiskProfile">Profiel kopiëren</button><button type="button" class="secondary" id="toggleAllEffectInfo">Alle effectbeschrijvingen tonen</button></div><div class="matrix-scroll"><table class="matrix"><thead><tr><th class="effect-head">Effect / Kans</th>${Array.from({length:config.chanceCount},(_,c)=>`<th>${c+1}<br><span style="font-weight:400">${esc(config.chanceDescriptions[c]||'')}</span></th>`).join('')}</tr></thead><tbody>${effectRows}</tbody></table></div><div class="legend">${RISK_LEVELS.map(r=>`<span class="${r.css}">${r.name}</span>`).join('')}</div>${navButtons('Risicomatrix maken')}`;
 
  document.querySelectorAll('.risk-select').forEach(s=>{
    const paint=()=>s.className='risk-select '+riskById(s.value).css;
    paint();
-   s.addEventListener('change',()=>{config.riskMatrix[Number(s.dataset.e)][Number(s.dataset.c)]=s.value;paint()});
+   s.addEventListener('change',()=>{matrixFor(activeRiskValue)[Number(s.dataset.e)][Number(s.dataset.c)]=s.value;paint()});
  });
 
+ $('riskValueSelect').addEventListener('change',e=>{activeRiskValue=e.target.value;saveConfig();renderStep6()});
+ $('copyRiskProfile').addEventListener('click',()=>{const source=prompt('Van welke waarde kopiëren? '+config.values.join(', '));if(!source)return;if(!config.values.includes(source)||source===activeRiskValue){alert('Kies een andere bestaande waarde.');return;}if(confirm('Profiel vervangen?')){config.riskMatrices[activeRiskValue]=matrixFor(source).map(row=>row.slice());saveConfig();renderStep6();}});
  document.querySelectorAll('.effect-info-btn').forEach(btn=>{
    btn.addEventListener('click',()=>{
      const e=btn.dataset.e;
@@ -309,7 +317,7 @@ function renderStep6(){
  });
 
  bindNav(()=>{
-   document.querySelectorAll('.risk-select').forEach(s=>config.riskMatrix[Number(s.dataset.e)][Number(s.dataset.c)]=s.value);
+   document.querySelectorAll('.risk-select').forEach(s=>matrixFor(activeRiskValue)[Number(s.dataset.e)][Number(s.dataset.c)]=s.value);
    saveConfig();
    showFinal();
    return false;
@@ -317,7 +325,9 @@ function renderStep6(){
 }
 function showFinal(){$('builderPanel').classList.add('hidden');$('stepper').classList.add('hidden');$('finalPanel').classList.remove('hidden');renderFinalMatrix();window.scrollTo({top:0,behavior:'smooth'})}
 function showBuilder(step=1){currentStep=step;$('finalPanel').classList.add('hidden');$('builderPanel').classList.remove('hidden');$('stepper').classList.remove('hidden');renderStep();window.scrollTo({top:0,behavior:'smooth'})}
-function renderFinalMatrix(){$('finalMatrix').innerHTML=`<div class="matrix-scroll"><table class="matrix"><thead><tr><th class="effect-head">Effect / Kans</th>${Array.from({length:config.chanceCount},(_,c)=>`<th>${c+1}<br><span style="font-weight:400">${esc(config.chanceDescriptions[c]||'')}</span></th>`).join('')}</tr></thead><tbody>${Array.from({length:config.effectCount},(_,row)=>config.effectCount-1-row).map(e=>`<tr><th class="effect-head">${effectLabel(e)}</th>${Array.from({length:config.chanceCount},(_,c)=>{const r=riskById(config.riskMatrix[e][c]);return `<td class="${r.css}"><strong>${r.name}</strong></td>`}).join('')}</tr>`).join('')}</tbody></table></div><div class="legend">${RISK_LEVELS.map(r=>`<span class="${r.css}">${r.name}</span>`).join('')}</div>`}
+function renderFinalMatrix(){
+ $('finalMatrix').innerHTML=config.values.map(v=>'<h3>'+esc(v)+'</h3><div class="matrix-scroll"><table class="matrix"><thead><tr><th>Effect / Kans</th>'+Array.from({length:config.chanceCount},(_,c)=>'<th>'+(c+1)+'</th>').join('')+'</tr></thead><tbody>'+Array.from({length:config.effectCount},(_,i)=>config.effectCount-1-i).map(e=>'<tr><th>'+effectLabel(e)+'</th>'+Array.from({length:config.chanceCount},(_,c)=>{const r=riskById(matrixFor(v)[e][c]);return '<td class="'+r.css+'">'+r.name+'</td>'}).join('')+'</tr>').join('')+'</tbody></table></div>').join('');
+}
 function downloadPublishedConfig(){
   const content = 'window.PUBLISHED_RISK_CONFIG = ' + JSON.stringify(config, null, 2) + ';\\n';
   const blob = new Blob([content], {type:'text/javascript'});
