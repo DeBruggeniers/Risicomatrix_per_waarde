@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Risicomatrix - PDF en print</title>
+<link rel="stylesheet" href="print-v3.css">
+</head>
+<body>
+<div class="screen-toolbar">
+  <button id="printBtn" type="button">Opslaan als PDF / printen</button>
+  <a href="index.html">Terug naar gebruikspagina</a>
+</div>
+
+<main id="printSheet">
+  <header class="print-header">
+    <div>
+      <h1>Risicomatrix</h1>
+      <p>Organisatiewaarden, effectcriteria, kansklassen en risicohouding</p>
+    </div>
+    <div class="print-meta" id="printMeta"></div>
+  </header>
+
+  <section class="matrix-layout">
+    <div class="criteria-area">
+      <div id="effectCriteria"></div>
+    </div>
+    <div class="risk-area">
+      <div id="riskMatrix"></div>
+    </div>
+  </section>
+</main>
+
+<script src="print-v3.js"></script>
+</body>
+</html>
