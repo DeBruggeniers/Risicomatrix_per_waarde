@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Risicobeoordeling</title>
+<link rel="stylesheet" href="styles.css?v=20261007-6">
+</head>
+<body>
+<div class="wrap">
+  <section class="hero">
+    <h1>Risicobeoordeling</h1>
+    <p>Kies de kansklasse en daarna per organisatiewaarde de passende effectklasse. De risicoklasse wordt automatisch uit de vastgestelde risicomatrix gehaald.</p>
+  </section>
+  <section class="panel">
+    <h2>Kansklasse</h2>
+    <p class="hint">Kies één kansklasse voor het risico.</p>
+    <div class="chance-grid" id="assessmentChances"></div>
+  </section>
+  <section class="panel">
+    <h2>Effect per waarde</h2>
+    <p class="hint">Kies per organisatiewaarde de passende effectklasse.</p>
+    <div id="assessmentRows"></div>
+  </section>
+  <section class="panel">
+    <h2>Resultaat</h2>
+    <div class="assessment-summary">
+      <div class="summary-card"><span>Hoogste risicoklasse</span><strong id="highestRisk">–</strong></div>
+      <div class="summary-card"><span>Beoordeelde waarden</span><strong id="completedValues">0</strong></div>
+    </div>
+    <div class="notice hidden" id="assessmentWarning"></div>
+    <div class="actions"><span></span><div class="actions-right"><a class="secondary" style="padding:10px 15px;border-radius:10px;font-weight:700;text-decoration:none" href="print.html" target="_blank">PDF / printen</a><button class="secondary" id="resetAssessmentBtn" type="button">Nieuwe beoordeling</button></div></div>
+  </section>
+  <section class="panel">
+    <details>
+      <summary><strong>Vastgestelde risicomatrix bekijken</strong></summary>
+      <div id="finalMatrix" style="margin-top:14px"></div>
+    </details>
+  </section>
+</div>
+<script>
+(async function(){
+  const workerUrl='https://risicomatrix-publisher.koen-f98.workers.dev/';
+  async function loadFromWorker(){
+    const res=await fetch(workerUrl+'?t='+Date.now(),{cache:'no-store'});
+    if(!res.ok) throw new Error('Worker GET niet beschikbaar');
+    const data=await res.json();
+    if(!data || !data.config) throw new Error('Geen configuratie ontvangen');
+    window.PUBLISHED_RISK_CONFIG=data.config;
+  }
+  function loadFallback(){
+    return new Promise((resolve,reject)=>{
+      const s=document.createElement('script');
+      s.src='https://raw.githubusercontent.com/DeBruggeniers/Risicomatrix_bouwen/main/config.js?t='+Date.now();
+      s.onload=resolve;
+      s.onerror=reject;
+      document.body.appendChild(s);
+    });
+  }
+  try{
+    try{await loadFromWorker()}catch(e){await loadFallback()}
+    const appScript=document.createElement('script');
+    appScript.src='app.js?v=20261007-9';
+    document.body.appendChild(appScript);
+  }catch(e){
+    document.body.innerHTML='<p style="padding:20px">De risicomatrix kon niet worden geladen. Vernieuw de pagina over enkele seconden.</p>';
+  }
+})();
+</script>
+</body>
+</html>
