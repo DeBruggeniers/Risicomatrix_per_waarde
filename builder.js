@@ -326,7 +326,14 @@ function renderStep6(){
 function showFinal(){$('builderPanel').classList.add('hidden');$('stepper').classList.add('hidden');$('finalPanel').classList.remove('hidden');renderFinalMatrix();window.scrollTo({top:0,behavior:'smooth'})}
 function showBuilder(step=1){currentStep=step;$('finalPanel').classList.add('hidden');$('builderPanel').classList.remove('hidden');$('stepper').classList.remove('hidden');renderStep();window.scrollTo({top:0,behavior:'smooth'})}
 function renderFinalMatrix(){
- $('finalMatrix').innerHTML=config.values.map(v=>'<h3>'+esc(v)+'</h3><div class="matrix-scroll"><table class="matrix"><thead><tr><th>Effect / Kans</th>'+Array.from({length:config.chanceCount},(_,c)=>'<th>'+(c+1)+'</th>').join('')+'</tr></thead><tbody>'+Array.from({length:config.effectCount},(_,i)=>config.effectCount-1-i).map(e=>'<tr><th>'+effectLabel(e)+'</th>'+Array.from({length:config.chanceCount},(_,c)=>{const r=riskById(matrixFor(v)[e][c]);return '<td class="'+r.css+'">'+r.name+'</td>'}).join('')+'</tr>').join('')+'</tbody></table></div>').join('');
+ const chanceHeaders=Array.from({length:config.chanceCount},(_,c)=>'<th><strong>'+(c+1)+'</strong><br><span style="font-weight:400;white-space:pre-line">'+esc(config.chanceDescriptions[c]||'Geen beschrijving')+'</span></th>').join('');
+ $('finalMatrix').innerHTML=config.values.map(v=>{
+  const rows=Array.from({length:config.effectCount},(_,i)=>config.effectCount-1-i).map(e=>{
+   const cells=Array.from({length:config.chanceCount},(_,c)=>{const r=riskById(matrixFor(v)[e][c]);return '<td class="'+r.css+'"><strong>'+esc(r.name)+'</strong></td>';}).join('');
+   return '<tr><th class="effect-head">'+esc(effectLabel(e))+'</th><td style="white-space:pre-line;text-align:left;min-width:180px">'+esc(config.effectDescriptions[v]?.[e]||'Geen beschrijving')+'</td>'+cells+'</tr>';
+  }).join('');
+  return '<h3>'+esc(v)+'</h3><div class="matrix-scroll"><table class="matrix"><thead><tr><th class="effect-head">Effectklasse</th><th>Effectbeschrijving</th>'+chanceHeaders+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+ }).join('');
 }
 function downloadPublishedConfig(){
   const content = 'window.PUBLISHED_RISK_CONFIG = ' + JSON.stringify(config, null, 2) + ';\\n';
