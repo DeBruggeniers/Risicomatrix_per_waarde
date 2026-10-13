@@ -1,4 +1,4 @@
-const WORKER_URL='https://risicomatrix-publisher.koen-f98.workers.dev/';
+const WORKER_URL='https://risicomatrix-per-waarde-publisher.koen-f98.workers.dev/';
 
 const RISK_LEVELS=[
   {id:'very-low',name:'Zeer laag',css:'risk-very-low'},
