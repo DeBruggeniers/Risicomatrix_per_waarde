@@ -40,7 +40,7 @@
 </div>
 <script>
 (async function(){
-  const workerUrl='https://risicomatrix-publisher.koen-f98.workers.dev/';
+  const workerUrl='https://risicomatrix-per-waarde-publisher.koen-f98.workers.dev/';
   async function loadFromWorker(){
     const res=await fetch(workerUrl+'?t='+Date.now(),{cache:'no-store'});
     if(!res.ok) throw new Error('Worker GET niet beschikbaar');
@@ -51,7 +51,7 @@
   function loadFallback(){
     return new Promise((resolve,reject)=>{
       const s=document.createElement('script');
-      s.src='https://raw.githubusercontent.com/DeBruggeniers/Risicomatrix_bouwen/main/config.js?t='+Date.now();
+      s.src='https://raw.githubusercontent.com/DeBruggeniers/Risicomatrix_per_waarde/main/config.js?t='+Date.now();
       s.onload=resolve;
       s.onerror=reject;
       document.body.appendChild(s);
