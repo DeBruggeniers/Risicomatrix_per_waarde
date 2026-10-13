@@ -25,6 +25,9 @@ function updateAssessment(){
  const w=$('assessmentWarning');if(assessment.chance===null){w.textContent='Kies eerst een kansklasse.';w.classList.remove('hidden')}else if(missing.length){w.innerHTML=`Nog niet ingevuld: <strong>${missing.map(esc).join(', ')}</strong>.`;w.classList.remove('hidden')}else w.classList.add('hidden');
 }
 function renderMatrix(){
- $('finalMatrix').innerHTML=config.values.map(v=>`<h3>${esc(v)}</h3>`+`<div class="matrix-scroll"><table class="matrix"><thead><tr><th class="effect-head">Effect / Kans</th>${Array.from({length:config.chanceCount},(_,c)=>`<th>${c+1}<br><span style="font-weight:400">${esc(config.chanceDescriptions[c]||'')}</span></th>`).join('')}</tr></thead><tbody>${Array.from({length:config.effectCount},(_,row)=>config.effectCount-1-row).map(e=>`<tr><th class="effect-head">${effectLabel(e)}</th>${Array.from({length:config.chanceCount},(_,c)=>{const r=riskById((config.riskMatrices?.[v]||config.riskMatrix)[e][c]);return `<td class="${r.css}"><strong>${r.name}</strong></td>`}).join('')}</tr>`).join('')}</tbody></table></div><div class="legend">${RISK_LEVELS.map(r=>`<span class="${r.css}">${r.name}</span>`).join('')}</div>`;
+ $('finalMatrix').innerHTML=config.values.map(v=>{
+ const rows=Array.from({length:config.effectCount},(_,i)=>config.effectCount-1-i).map(e=>'<tr><th>'+effectLabel(e)+'</th>'+Array.from({length:config.chanceCount},(_,c)=>{const r=riskById((config.riskMatrices?.[v]||config.riskMatrix)[e][c]);return '<td class="'+r.css+'">'+r.name+'</td>';}).join('')+'</tr>').join('');
+ return '<h3>'+esc(v)+'</h3><div class="matrix-scroll"><table class="matrix"><thead><tr><th>Effect / Kans</th>'+Array.from({length:config.chanceCount},(_,c)=>'<th>'+(c+1)+'</th>').join('')+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+ }).join('');
 }
 if(!config){document.body.innerHTML='<p style="padding:20px">Geen gepubliceerde risicomatrix gevonden.</p>'}else{renderAssessment();renderMatrix();$('resetAssessmentBtn').addEventListener('click',renderAssessment)}
